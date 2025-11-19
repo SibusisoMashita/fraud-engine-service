@@ -1,0 +1,49 @@
+#
+# Local Development Configuration
+# This file overrides application.yml when spring.profiles.active=local
+#
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/fraud_engine
+    username: postgres
+    password: admin
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+  jackson:
+    serialization:
+      indent_output: true
+
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
+    org.springframework: INFO
+    org.springdoc: DEBUG
+    com.fraudengine: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,metrics"
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    enable:
+      all: true
