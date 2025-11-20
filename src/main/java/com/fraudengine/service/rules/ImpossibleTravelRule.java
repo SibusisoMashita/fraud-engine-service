@@ -1,5 +1,6 @@
 package com.fraudengine.service.rules;
 
+import com.fraudengine.domain.RuleName;
 import com.fraudengine.domain.RuleResult;
 import com.fraudengine.domain.Transaction;
 import com.fraudengine.repository.TransactionRepository;
@@ -42,6 +43,6 @@ public class ImpossibleTravelRule implements FraudRule {
 
     @Override
     public String getRuleName() {
-        return "ImpossibleTravelRule";
+        return RuleName.IMPOSSIBLE_TRAVEL.value();
     }
 }
