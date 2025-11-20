@@ -21,6 +21,8 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
+    create-schemas: true
+    schemas: public
 
   jackson:
     serialization:

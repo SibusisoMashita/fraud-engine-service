@@ -1,24 +1,23 @@
 package com.fraudengine.service.rules;
 
+import com.fraudengine.domain.RuleName;
 import com.fraudengine.domain.RuleResult;
 import com.fraudengine.domain.Transaction;
+import com.fraudengine.service.MerchantBlacklistService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.Set;
-
 @Component
+@RequiredArgsConstructor
 public class MerchantBlacklistRule implements FraudRule {
 
-    private static final Set<String> BLACKLIST = Set.of(
-            "FraudStore",
-            "ShadyDealer",
-            "SuspiciousMerchant"
-    );
+    private final MerchantBlacklistService blacklistService;
 
     @Override
     public RuleResult evaluate(Transaction tx) {
 
-        boolean passed = !BLACKLIST.contains(tx.getMerchant());
+        boolean isBlacklisted = blacklistService.isBlacklisted(tx.getMerchant());
+        boolean passed = !isBlacklisted;
 
         return RuleResult.builder()
                 .transactionId(tx.getTransactionId())
@@ -31,6 +30,6 @@ public class MerchantBlacklistRule implements FraudRule {
 
     @Override
     public String getRuleName() {
-        return "MerchantBlacklistRule";
+        return RuleName.MERCHANT_BLACKLIST.value();
     }
 }

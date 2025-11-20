@@ -1,7 +1,9 @@
 package com.fraudengine.service.rules;
 
+import com.fraudengine.domain.RuleName;
 import com.fraudengine.domain.RuleResult;
 import com.fraudengine.domain.Transaction;
+import com.fraudengine.service.RuleConfigService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -11,24 +13,28 @@ import java.math.BigDecimal;
 @RequiredArgsConstructor
 public class HighValueTransactionRule implements FraudRule {
 
-    private static final BigDecimal THRESHOLD = new BigDecimal("10000");
+    private final RuleConfigService configService;
 
     @Override
     public RuleResult evaluate(Transaction tx) {
 
-        boolean passed = tx.getAmount().compareTo(THRESHOLD) <= 0;
+        var cfg = configService.getConfig(getRuleName());
+        BigDecimal threshold = new BigDecimal(cfg.get("threshold"));
+
+        boolean passed = tx.getAmount().compareTo(threshold) <= 0;
 
         return RuleResult.builder()
                 .transactionId(tx.getTransactionId())
                 .ruleName(getRuleName())
                 .passed(passed)
-                .reason(passed ? "Below threshold" : "Amount exceeds R10,000")
+                .reason(passed ? "Below threshold" : "Exceeds threshold: " + threshold)
                 .score(passed ? 0 : 5)
                 .build();
     }
 
     @Override
     public String getRuleName() {
-        return "HighValueTransactionRule";
+        return RuleName.HIGH_VALUE.value();
     }
 }
+
