@@ -1,4 +1,4 @@
-name: Fraud Engine CI
+name: CI
 
 on:
   push:
@@ -14,16 +14,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Cache Maven Repository
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
+          cache: maven
 
-      - name: Build with Maven (incl. tests + Jacoco)
-        run: mvn -B clean verify
+      - name: Build & Test With Incremental Compilation
+        run: mvn -B -T 1C clean verify
 
-      - name: Upload Jacoco Coverage Report
+      - name: Upload Jacoco Results
         uses: actions/upload-artifact@v4
         with:
           name: jacoco-report
