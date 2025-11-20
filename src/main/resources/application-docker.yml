@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/fraud_engine
+    username: postgres
+    password: admin
+  jpa:
+    hibernate:
+      ddl-auto: none
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    schemas: public
+
+server:
+  port: 8080
