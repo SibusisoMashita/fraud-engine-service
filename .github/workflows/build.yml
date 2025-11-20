@@ -1,4 +1,4 @@
-name: CI & Docker Publish
+name: CI
 
 on:
   push:
@@ -6,31 +6,28 @@ on:
   pull_request:
     branches: [ main, develop ]
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-
 jobs:
-  build-test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
       # -------------------------------------------------------------
-      # 1. Checkout Source Code
+      # 1. Checkout code
       # -------------------------------------------------------------
       - name: Checkout
         uses: actions/checkout@v4
 
       # -------------------------------------------------------------
-      # 2. Cache Maven Dependencies
+      # 2. Cache Maven dependencies
       # -------------------------------------------------------------
-      - name: Cache Maven Repo
+      - name: Cache Maven Repository
         uses: actions/cache@v4
         with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          path: |
+            ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
-            ${{ runner.os }}-m2-
+            ${{ runner.os }}-maven-
 
       # -------------------------------------------------------------
       # 3. Setup Java
@@ -43,34 +40,22 @@ jobs:
           cache: maven
 
       # -------------------------------------------------------------
-      # 4. Run Maven Build + Tests + Integration Tests (Testcontainers)
+      # 4. Build + Unit Tests + JaCoCo Coverage Check
       # -------------------------------------------------------------
-      - name: Build / Unit Tests / Integration Tests
-        run: mvn -B clean verify -DskipTests=false
+      - name: Build & Test
+        run: mvn -B -T 1C clean verify
 
       # -------------------------------------------------------------
-      # 5. Upload Jacoco Test Coverage Report
+      # 5. Upload JaCoCo Reports
       # -------------------------------------------------------------
-      - name: Upload Jacoco Report
+      - name: Upload Jacoco Results
         uses: actions/upload-artifact@v4
         with:
           name: jacoco-report
           path: target/site/jacoco
 
-  docker:
-    needs: build-test
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      security-events: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       # -------------------------------------------------------------
-      # 6. Login to GitHub Container Registry
+      # 6. Log in to GitHub Container Registry (GHCR)
       # -------------------------------------------------------------
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -80,60 +65,85 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # -------------------------------------------------------------
-      # 7. Extract Docker Metadata (automatic tags)
-      # -------------------------------------------------------------
-      - name: Docker Metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=sha
-            type=ref,event=branch
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      # -------------------------------------------------------------
-      # 8. Build Docker Image
+      # 7. Build Docker Image
       # -------------------------------------------------------------
       - name: Build Docker Image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: false
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+        run: |
+          IMAGE=ghcr.io/${{ github.repository }}/fraud-engine-service:sha-${{ github.sha }}
+          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+          docker build -t $IMAGE .
 
       # -------------------------------------------------------------
-      # 9. Security Scan using Trivy
+      # 8. Scan Docker Image with Trivy
       # -------------------------------------------------------------
-      - name: Run Trivy Security Scan
+      - name: Security Scan (Trivy)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
-          format: sarif
-          output: trivy-results.sarif
+          image-ref: ${{ env.IMAGE }}
+          format: "sarif"
+          output: "trivy-results.sarif"
+          exit-code: "0" # Do not fail build on vulnerabilities yet
+          vuln-type: "os,library"
 
-      - name: Upload Security Scan Report
+      - name: Upload SARIF report to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-results.sarif
 
       # -------------------------------------------------------------
-      # 10. Test Container Startup
-      # -------------------------------------------------------------
-      - name: Start Container for Smoke Tests
-        run: |
-          docker run -d --name fraud-test -p 8080:8080 ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
-          sleep 15
-          curl -f http://localhost:8080/api/v1/health || exit 1
-
-      # -------------------------------------------------------------
-      # 11. Push image to GHCR
+      # 9. Push Docker image to GHCR
       # -------------------------------------------------------------
       - name: Push Docker Image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+        run: docker push ${{ env.IMAGE }}
+
+      # -------------------------------------------------------------
+      # 10. Start Postgres (for smoke tests)
+      # -------------------------------------------------------------
+      - name: Start Postgres
+        run: |
+          docker run -d \
+            --name fraud-postgres \
+            -e POSTGRES_DB=fraud_engine \
+            -e POSTGRES_USER=postgres \
+            -e POSTGRES_PASSWORD=admin \
+            -p 5432:5432 \
+            postgres:15
+
+          echo "Waiting for Postgres to be ready…"
+          for i in {1..20}; do
+            docker exec fraud-postgres pg_isready && break
+            sleep 2
+          done
+
+      # -------------------------------------------------------------
+      # 11. Run Your App Container
+      # -------------------------------------------------------------
+      - name: Start Fraud Engine App
+        run: |
+          docker run -d \
+            --name fraud-test \
+            --network host \
+            -e SPRING_PROFILES_ACTIVE=docker \
+            -p 8080:8080 \
+            ${{ env.IMAGE }}
+
+          echo "Waiting for application startup..."
+          sleep 25
+
+      # -------------------------------------------------------------
+      # 12. Smoke Test API
+      # -------------------------------------------------------------
+      - name: Smoke Test /health
+        run: |
+          curl -v --fail http://localhost:8080/api/v1/health
+
+      # -------------------------------------------------------------
+      # 13. Print logs if smoke test fails
+      # -------------------------------------------------------------
+      - name: Dump container logs
+        if: failure()
+        run: |
+          echo "------ Fraud Engine Logs ------"
+          docker logs fraud-test || true
+          echo "------ Postgres Logs ------"
+          docker logs fraud-postgres || true

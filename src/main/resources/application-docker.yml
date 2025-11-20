@@ -1,15 +1,11 @@
 spring:
   datasource:
-    url: jdbc:postgresql://postgres:5432/fraud_engine
+    url: jdbc:postgresql://localhost:5432/fraud_engine
     username: postgres
     password: admin
-    driver-class-name: org.postgresql.Driver
-
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: false
-
   flyway:
     enabled: true
     baseline-on-migrate: true
@@ -17,7 +13,3 @@ spring:
 
 server:
   port: 8080
-
-logging:
-  level:
-    root: INFO
