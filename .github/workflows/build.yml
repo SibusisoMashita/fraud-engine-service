@@ -1,4 +1,4 @@
-name: CI
+name: CI & Docker Publish
 
 on:
   push:
@@ -6,28 +6,30 @@ on:
   pull_request:
     branches: [ main, develop ]
 
+env:
+  REGISTRY: ghcr.io
+
 jobs:
-  build:
+  build-test:
     runs-on: ubuntu-latest
 
     steps:
       # -------------------------------------------------------------
-      # 1. Checkout code
+      # 1. Checkout Source Code
       # -------------------------------------------------------------
       - name: Checkout
         uses: actions/checkout@v4
 
       # -------------------------------------------------------------
-      # 2. Cache Maven dependencies
+      # 2. Cache Maven Dependencies
       # -------------------------------------------------------------
-      - name: Cache Maven Repository
+      - name: Cache Maven Repo
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ${{ runner.os }}-m2-
 
       # -------------------------------------------------------------
       # 3. Setup Java
@@ -40,22 +42,47 @@ jobs:
           cache: maven
 
       # -------------------------------------------------------------
-      # 4. Build + Unit Tests + JaCoCo Coverage Check
+      # 4. Run Maven Build + Unit Tests + Jacoco + TestContainers
       # -------------------------------------------------------------
-      - name: Build & Test
-        run: mvn -B -T 1C clean verify
+      - name: Build / Unit Tests / Integration Tests
+        run: mvn -B clean verify
 
       # -------------------------------------------------------------
-      # 5. Upload JaCoCo Reports
+      # 5. Upload Jacoco Test Coverage Report
       # -------------------------------------------------------------
-      - name: Upload Jacoco Results
+      - name: Upload Jacoco Report
         uses: actions/upload-artifact@v4
         with:
           name: jacoco-report
           path: target/site/jacoco
 
+
+  # ================================================================
+  #               DOCKER BUILD + SECURITY SCAN + SMOKE TEST
+  # ================================================================
+  docker:
+    needs: build-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       # -------------------------------------------------------------
-      # 6. Log in to GitHub Container Registry (GHCR)
+      # 6. Convert repo name to lowercase (required by GHCR)
+      # -------------------------------------------------------------
+      - name: Normalize repo name (lowercase)
+        id: repo
+        run: |
+          REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "repo=$REPO" >> $GITHUB_OUTPUT
+
+      # -------------------------------------------------------------
+      # 7. Login to GitHub Container Registry (GHCR)
       # -------------------------------------------------------------
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -65,39 +92,46 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # -------------------------------------------------------------
-      # 7. Build Docker Image
+      # 8. Extract Docker Metadata (tags + labels)
+      # -------------------------------------------------------------
+      - name: Docker Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ steps.repo.outputs.repo }}
+          tags: |
+            type=sha
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      # -------------------------------------------------------------
+      # 9. Build Docker Image (but do NOT push yet)
       # -------------------------------------------------------------
       - name: Build Docker Image
-        run: |
-          IMAGE=ghcr.io/${{ github.repository_owner,, }}/fraud-engine-service:sha-${{ github.sha }}
-          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
-          docker build -t $IMAGE .
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
       # -------------------------------------------------------------
-      # 8. Scan Docker Image with Trivy
+      # 10. Security Scan with Trivy
       # -------------------------------------------------------------
-      - name: Security Scan (Trivy)
+      - name: Run Trivy Security Scan
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.IMAGE }}
-          format: "sarif"
-          output: "trivy-results.sarif"
-          exit-code: "0" # Do not fail build on vulnerabilities yet
-          vuln-type: "os,library"
+          image-ref: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+          format: sarif
+          output: trivy-results.sarif
 
-      - name: Upload SARIF report to GitHub Security
+      - name: Upload Security Scan SARIF
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-results.sarif
 
       # -------------------------------------------------------------
-      # 9. Push Docker image to GHCR
-      # -------------------------------------------------------------
-      - name: Push Docker Image
-        run: docker push ${{ env.IMAGE }}
-
-      # -------------------------------------------------------------
-      # 10. Start Postgres (for smoke tests)
+      # 11. Start Postgres for Smoke Test
       # -------------------------------------------------------------
       - name: Start Postgres
         run: |
@@ -109,41 +143,51 @@ jobs:
             -p 5432:5432 \
             postgres:15
 
-          echo "Waiting for Postgres to be ready…"
+          echo "Waiting for Postgres..."
           for i in {1..20}; do
             docker exec fraud-postgres pg_isready && break
             sleep 2
           done
 
       # -------------------------------------------------------------
-      # 11. Run Your App Container
+      # 12. Start Your Application Container (Smoke Test)
       # -------------------------------------------------------------
-      - name: Start Fraud Engine App
+      - name: Start Fraud Engine Container
         run: |
           docker run -d \
             --name fraud-test \
             --network host \
             -e SPRING_PROFILES_ACTIVE=docker \
-            -p 8080:8080 \
-            ${{ env.IMAGE }}
+            ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
 
-          echo "Waiting for application startup..."
+          echo "Waiting for Fraud Engine to start..."
           sleep 25
 
       # -------------------------------------------------------------
-      # 12. Smoke Test API
+      # 13. Smoke Test /health endpoint
       # -------------------------------------------------------------
-      - name: Smoke Test /health
+      - name: Smoke Test /api/v1/health
         run: |
           curl -v --fail http://localhost:8080/api/v1/health
 
       # -------------------------------------------------------------
-      # 13. Print logs if smoke test fails
+      # 14. Dump logs if smoke test fails
       # -------------------------------------------------------------
-      - name: Dump container logs
+      - name: Dump logs on failure
         if: failure()
         run: |
           echo "------ Fraud Engine Logs ------"
           docker logs fraud-test || true
           echo "------ Postgres Logs ------"
           docker logs fraud-postgres || true
+
+      # -------------------------------------------------------------
+      # 15. Push Image to GHCR (only after successful smoke test)
+      # -------------------------------------------------------------
+      - name: Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
