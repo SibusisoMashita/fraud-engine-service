@@ -1,5 +1,6 @@
 package com.fraudengine.dto;
 
+import com.fraudengine.domain.Channel;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
@@ -30,6 +31,6 @@ public class TransactionRequest {
 
     private String location;
 
-    @NotBlank
-    private String channel;
+    @NotNull(message = "channel is required")
+    private Channel channel;
 }

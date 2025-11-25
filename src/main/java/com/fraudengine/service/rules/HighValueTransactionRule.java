@@ -5,6 +5,8 @@ import com.fraudengine.domain.RuleResult;
 import com.fraudengine.domain.Transaction;
 import com.fraudengine.service.RuleConfigService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -12,6 +14,8 @@ import java.math.BigDecimal;
 @Component
 @RequiredArgsConstructor
 public class HighValueTransactionRule implements FraudRule {
+
+    private static final Logger log = LoggerFactory.getLogger(HighValueTransactionRule.class);
 
     private final RuleConfigService configService;
 
@@ -22,6 +26,17 @@ public class HighValueTransactionRule implements FraudRule {
         BigDecimal threshold = new BigDecimal(cfg.get("threshold"));
 
         boolean passed = tx.getAmount().compareTo(threshold) <= 0;
+
+        // ─────────────────────────────
+        //   Structured Rule Audit Log
+        // ─────────────────────────────
+        log.debug(
+                "rule_evaluation event=HighValueTransactionRule transactionId={} amount={} threshold={} passed={}",
+                tx.getTransactionId(),
+                tx.getAmount(),
+                threshold,
+                passed
+        );
 
         return RuleResult.builder()
                 .transactionId(tx.getTransactionId())
@@ -37,4 +52,3 @@ public class HighValueTransactionRule implements FraudRule {
         return RuleName.HIGH_VALUE.value();
     }
 }
-

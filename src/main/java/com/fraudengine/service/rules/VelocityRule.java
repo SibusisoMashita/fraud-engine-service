@@ -6,6 +6,8 @@ import com.fraudengine.domain.Transaction;
 import com.fraudengine.repository.TransactionRepository;
 import com.fraudengine.service.RuleConfigService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
@@ -14,6 +16,8 @@ import java.time.LocalDateTime;
 @Component
 @RequiredArgsConstructor
 public class VelocityRule implements FraudRule {
+
+    private static final Logger log = LoggerFactory.getLogger(VelocityRule.class);
 
     private final TransactionRepository repository;
     private final RuleConfigService configService;
@@ -36,6 +40,20 @@ public class VelocityRule implements FraudRule {
 
         boolean passed = count < maxTxCount;
 
+        // ─────────────────────────────
+        //   Structured Rule Audit Log
+        // ─────────────────────────────
+        log.debug(
+                "rule_evaluation event=VelocityRule transactionId={} customerId={} count={} maxTxCount={} windowMinutes={} windowStart={} passed={}",
+                tx.getTransactionId(),
+                tx.getCustomerId(),
+                count,
+                maxTxCount,
+                windowMinutes,
+                windowStart,
+                passed
+        );
+
         return RuleResult.builder()
                 .transactionId(tx.getTransactionId())
                 .ruleName(getRuleName())
@@ -50,4 +68,3 @@ public class VelocityRule implements FraudRule {
         return RuleName.VELOCITY.value();
     }
 }
-
