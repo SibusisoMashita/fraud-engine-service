@@ -33,7 +33,7 @@ class MerchantBlacklistRuleTest {
         var result = rule.evaluate(tx);
 
         assertTrue(result.isPassed());
-        assertEquals("Merchant clean", result.getReason());
+        assertEquals("Merchant clean or not registered", result.getReason());
     }
 
     @Test
@@ -68,6 +68,6 @@ class MerchantBlacklistRuleTest {
 
         // Rule treats unknown merchant as clean
         assertTrue(result.isPassed());
-        assertEquals("Merchant clean", result.getReason());
+        assertEquals("Merchant clean or not registered", result.getReason());
     }
 }
