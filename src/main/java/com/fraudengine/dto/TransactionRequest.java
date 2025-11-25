@@ -29,6 +29,7 @@ public class TransactionRequest {
     @NotBlank
     private String merchant;
 
+    @NotBlank
     private String location;
 
     @NotNull(message = "channel is required")

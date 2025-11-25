@@ -1,19 +1,23 @@
 # ------------------------------------------------------
-# Stage 1: Build the JAR with Maven
+# Stage 1: Build the JAR with Maven Wrapper
 # ------------------------------------------------------
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 
 WORKDIR /app
 
-# Copy only pom.xml first to cache dependencies
+# Copy Maven wrapper and pom.xml first (best for caching)
 COPY pom.xml .
-RUN mvn -q -e -B dependency:resolve dependency:resolve-plugins
+COPY mvnw .
+COPY .mvn .mvn
 
-# Now copy the full project
+# Pre-download Maven dependencies
+RUN ./mvnw -q -e -B dependency:go-offline
+
+# Copy the rest of the project
 COPY src ./src
 
-# Build JAR (skip tests if needed: add -DskipTests)
-RUN mvn -q -e -B package -DskipTests
+# Build the application
+RUN ./mvnw -q -e -B clean package -DskipTests
 
 
 # ------------------------------------------------------
@@ -23,11 +27,13 @@ FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-# Copy jar from Stage 1
+# Copy final JAR from build stage
 COPY --from=build /app/target/*.jar app.jar
 
-# Expose the port Spring Boot will run on
+# Expose application port
 EXPOSE 8080
 
-# Default command
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Optional optimized JVM flags for containers
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75"
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
