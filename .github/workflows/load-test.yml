@@ -15,6 +15,18 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      # ---------------------------------------------------
+      # 1️⃣ Maven Cache (Speeds up dependency resolution)
+      # ---------------------------------------------------
+      - name: Cache Maven Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2/repository
+          key: m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            m2-
+
       - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
@@ -24,25 +36,71 @@ jobs:
       - name: Build Fraud Engine JAR
         run: mvn -q -e -B clean package -DskipTests
 
-      - name: Start Fraud Engine Container
+      # ---------------------------------------------------
+      # 2️⃣ Docker Buildx cache (HUGE speed boost)
+      # ---------------------------------------------------
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: buildx-${{ github.sha }}
+          restore-keys: |
+            buildx-
+
+      - name: Build Docker Image with cache
         run: |
-          docker build -t fraud-engine:latest .
+          docker buildx build \
+            --cache-from type=local,src=/tmp/.buildx-cache \
+            --cache-to type=local,dest=/tmp/.buildx-cache-new \
+            -t fraud-engine:latest \
+            .
+
+      - name: Move updated Docker cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      # ---------------------------------------------------
+      # 3️⃣ Run container
+      # ---------------------------------------------------
+      - name: Run Fraud Engine container
+        run: |
+          docker ps -aq | xargs -r docker stop | xargs -r docker rm || true
           docker run -d -p 8080:8080 --name fraud-engine fraud-engine:latest
           echo "Waiting for service to boot..."
-          sleep 20
+          sleep 15
 
-      - name: Install Newman
+      # ---------------------------------------------------
+      # 4️⃣ Cache Newman NPM downloads (faster test runs)
+      # ---------------------------------------------------
+      - name: Cache NPM (Newman)
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}
+          restore-keys: npm-
+
+      - name: Install Newman + HTML reporter
         run: sudo npm install -g newman newman-reporter-htmlextra
 
+      # ---------------------------------------------------
+      # 5️⃣ Run load tests
+      # ---------------------------------------------------
       - name: Run Postman Load Tests
         run: |
           newman run postman/collection.json \
             -e postman/environment.json \
             --timeout-request 30000 \
-            --reporters cli,htmlextra \
+            --reporters cli,htmlextra,json \
             --reporter-htmlextra-export newman-report.html \
             --reporter-json-export newman-report.json
 
+      # ---------------------------------------------------
+      # 6️⃣ Upload reports
+      # ---------------------------------------------------
       - name: Upload Load Test HTML Report
         uses: actions/upload-artifact@v4
         with:
@@ -55,7 +113,9 @@ jobs:
           name: postman-loadtest-json
           path: newman-report.json
 
-      # Optional: fail pipeline if too many request failures
+      # ---------------------------------------------------
+      # 7️⃣ Performance Gates
+      # ---------------------------------------------------
       - name: Enforce Performance Threshold
         run: |
           FAIL_COUNT=$(jq '.run.stats.requests.failed' newman-report.json)
