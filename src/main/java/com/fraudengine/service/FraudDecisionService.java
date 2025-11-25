@@ -9,9 +9,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -92,5 +92,9 @@ public class FraudDecisionService {
             );
             throw e;
         }
+    }
+
+    public Optional<FraudDecision> findByTransactionId(String transactionId) {
+        return fraudDecisionRepository.findByTransactionId(transactionId).map(decision -> decision);
     }
 }

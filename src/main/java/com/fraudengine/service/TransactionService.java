@@ -71,15 +71,4 @@ public class TransactionService {
                 transaction.getCustomerId()
         );
     }
-
-    public Transaction getTransaction(String transactionId) {
-
-        log.debug("[tx={}] event=transaction_fetch", transactionId);
-
-        return transactionRepository.findById(transactionId)
-                .orElseThrow(() -> {
-                    log.error("[tx={}] ❌ event=transaction_not_found", transactionId);
-                    return new IllegalArgumentException("Transaction not found: " + transactionId);
-                });
-    }
 }

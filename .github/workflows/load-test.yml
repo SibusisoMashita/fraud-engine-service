@@ -1,0 +1,66 @@
+name: Run Load Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  load-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Build Fraud Engine JAR
+        run: mvn -q -e -B clean package -DskipTests
+
+      - name: Start Fraud Engine Container
+        run: |
+          docker build -t fraud-engine:latest .
+          docker run -d -p 8080:8080 --name fraud-engine fraud-engine:latest
+          echo "Waiting for service to boot..."
+          sleep 20
+
+      - name: Install Newman
+        run: sudo npm install -g newman newman-reporter-htmlextra
+
+      - name: Run Postman Load Tests
+        run: |
+          newman run postman/collection.json \
+            -e postman/environment.json \
+            --timeout-request 30000 \
+            --reporters cli,htmlextra \
+            --reporter-htmlextra-export newman-report.html \
+            --reporter-json-export newman-report.json
+
+      - name: Upload Load Test HTML Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: postman-loadtest-html
+          path: newman-report.html
+
+      - name: Upload Load Test JSON Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: postman-loadtest-json
+          path: newman-report.json
+
+      # Optional: fail pipeline if too many request failures
+      - name: Enforce Performance Threshold
+        run: |
+          FAIL_COUNT=$(jq '.run.stats.requests.failed' newman-report.json)
+          echo "Failed Requests: $FAIL_COUNT"
+          if [ "$FAIL_COUNT" -gt 5 ]; then
+            echo "❌ Too many load-test failures!"
+            exit 1
+          fi

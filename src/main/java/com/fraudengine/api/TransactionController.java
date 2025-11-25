@@ -5,7 +5,6 @@ import com.fraudengine.dto.TransactionResponse;
 import com.fraudengine.mapper.TransactionMapper;
 import com.fraudengine.service.FraudDecisionService;
 import com.fraudengine.service.TransactionService;
-import com.fraudengine.repository.FraudDecisionRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +17,6 @@ public class TransactionController {
 
     private final TransactionService transactionService;
     private final TransactionMapper transactionMapper;
-    private final FraudDecisionRepository fraudDecisionRepository;
     private final FraudDecisionService fraudDecisionService;
 
     @PostMapping
@@ -30,8 +28,20 @@ public class TransactionController {
         transactionService.processTransaction(tx);
 
         // Retrieve the final decision (saved by rule engine)
-        var decision = fraudDecisionRepository.findByTransactionId(tx.getTransactionId())
-                .orElseThrow(() -> new IllegalStateException("Decision not computed"));
+        var decisions = fraudDecisionService.findByTransactionId(tx.getTransactionId());
+
+        if (decisions.isEmpty()) {
+            return ResponseEntity.ok(
+                    TransactionResponse.builder()
+                            .transactionId(tx.getTransactionId())
+                            .isFraud(false)
+                            .severity(0)
+                            .evaluatedAt(null)
+                            .build()
+            );
+        }
+
+        var decision = decisions.get();
 
         return ResponseEntity.ok(
                 TransactionResponse.builder()

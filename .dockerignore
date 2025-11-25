@@ -1,0 +1,13 @@
+target/
+.git/
+.gitignore
+.idea/
+*.iml
+*.log
+*.env
+*.json
+docker-compose.yml
+
+# OS junk
+.DS_Store
+Thumbs.db
