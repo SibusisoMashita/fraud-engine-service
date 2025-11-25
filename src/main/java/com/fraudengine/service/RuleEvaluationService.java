@@ -2,15 +2,15 @@ package com.fraudengine.service;
 
 import com.fraudengine.domain.RuleResult;
 import com.fraudengine.domain.Transaction;
-import com.fraudengine.service.rules.FraudRule;
 import com.fraudengine.repository.RuleResultRepository;
+import com.fraudengine.service.rules.RuleContext;
+import com.fraudengine.service.rules.RulePipeline;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -18,7 +18,7 @@ public class RuleEvaluationService {
 
     private static final Logger log = LoggerFactory.getLogger(RuleEvaluationService.class);
 
-    private final List<FraudRule> fraudRules; // Spring auto-injects all rule beans
+    private final RulePipeline rulePipeline;
     private final RuleResultRepository ruleResultRepository;
     private final FraudDecisionService fraudDecisionService;
 
@@ -27,29 +27,27 @@ public class RuleEvaluationService {
         String txId = transaction.getTransactionId();
 
         log.info("[tx={}] 🟢 Fraud evaluation started", txId);
-
-        // ──────────────────────────────────────────────
-        //   INFO: Begin rule evaluation pipeline
-        // ──────────────────────────────────────────────
         log.info(
-                "[tx={}] event=rule_evaluation_start customerId={} ruleCount={}",
+                "[tx={}] event=rule_evaluation_start customerId={}",
                 txId,
-                transaction.getCustomerId(),
-                fraudRules.size()
+                transaction.getCustomerId()
         );
 
-        long startTime = System.currentTimeMillis();
+        long start = System.currentTimeMillis();
 
-        // Execute all fraud rules
-        List<RuleResult> results = fraudRules.stream()
-                .map(rule -> rule.evaluate(transaction))
-                .toList();
+        // Context passed to all rules inside the pipeline
+        RuleContext ctx = RuleContext.builder()
+                .startTimeMs(start)
+                .build();
 
-        // Determine triggered (failed) rules
+        // Run the pipeline (sequential rule evaluation)
+        List<RuleResult> results = rulePipeline.run(transaction, ctx);
+
+        // Identify triggered rules
         List<String> triggered = results.stream()
                 .filter(r -> !r.isPassed())
                 .map(RuleResult::getRuleName)
-                .collect(Collectors.toList());
+                .toList();
 
         if (triggered.isEmpty()) {
             log.info("[tx={}] 🟢 All rules passed", txId);
@@ -57,30 +55,14 @@ public class RuleEvaluationService {
             log.info("[tx={}] 🟠 Rules triggered: {}", txId, String.join(", ", triggered));
         }
 
-        // ──────────────────────────────────────────────
-        //   DEBUG: Rule evaluation summary
-        // ──────────────────────────────────────────────
-        log.debug(
-                "[tx={}] event=rule_evaluation_summary totalRules={} triggeredRules={}",
-                txId,
-                results.size(),
-                triggered
-        );
-
-        // Persist all rule results
+        // Persist rule results
         ruleResultRepository.saveAll(results);
 
-        long endTime = System.currentTimeMillis();
-        long duration = endTime - startTime;
+        long end = System.currentTimeMillis();
+        long duration = end - start;
 
-        // ──────────────────────────────────────────────
-        //   HUMAN-FRIENDLY END LOG
-        // ──────────────────────────────────────────────
         log.info("[tx={}] 🔵 Rule evaluation completed in {} ms", txId, duration);
 
-        // ──────────────────────────────────────────────
-        //   INFO: Structured completion event
-        // ──────────────────────────────────────────────
         log.info(
                 "[tx={}] event=rule_evaluation_end triggeredCount={} durationMs={}",
                 txId,

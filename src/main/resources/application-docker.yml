@@ -13,3 +13,11 @@ spring:
 
 server:
   port: 8080
+
+fraud:
+  enabled-rules:
+    - HIGH_VALUE
+    - MERCHANT_BLACKLIST
+    - IMPOSSIBLE_TRAVEL
+    - OFF_HOURS
+    - VELOCITY

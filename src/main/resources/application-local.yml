@@ -49,3 +49,11 @@ management:
   metrics:
     enable:
       all: true
+
+fraud:
+  enabled-rules:
+    - HIGH_VALUE
+    - MERCHANT_BLACKLIST
+    - IMPOSSIBLE_TRAVEL
+    - OFF_HOURS
+    - VELOCITY
