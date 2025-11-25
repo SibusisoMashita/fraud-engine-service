@@ -47,7 +47,7 @@ class TransactionControllerTest {
     private TransactionMapper txMapper;
 
     @MockBean
-    private FraudDecisionRepository decisionRepo;
+    private FraudDecisionRepository decisionRepo; // retained though not directly used now
 
     @MockBean
     private FraudDecisionService fraudDecisionService;
@@ -77,7 +77,8 @@ class TransactionControllerTest {
 
         when(txMapper.toEntity(any())).thenReturn(txEntity);
         doNothing().when(txService).processTransaction(txEntity);
-        when(decisionRepo.findByTransactionId("T1")).thenReturn(Optional.of(decision));
+        // Updated: stub FraudDecisionService instead of repository
+        when(fraudDecisionService.findByTransactionId("T1")).thenReturn(Optional.of(decision));
 
         mvc.perform(post("/api/v1/transactions")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -89,7 +90,7 @@ class TransactionControllerTest {
     }
 
     @Test
-    void shouldFail_WhenDecisionNotComputed() throws Exception {
+    void shouldReturnDefaultResponse_WhenDecisionNotComputed() throws Exception {
         TransactionRequest request = TransactionRequest.builder()
                 .transactionId("T1")
                 .customerId("C1")
@@ -106,11 +107,16 @@ class TransactionControllerTest {
 
         when(txMapper.toEntity(any())).thenReturn(txEntity);
         doNothing().when(txService).processTransaction(txEntity);
-        when(decisionRepo.findByTransactionId("T1")).thenReturn(Optional.empty());
+        // Updated: stub FraudDecisionService to return empty
+        when(fraudDecisionService.findByTransactionId("T1")).thenReturn(Optional.empty());
 
         mvc.perform(post("/api/v1/transactions")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(mapper.writeValueAsString(request)))
-                .andExpect(status().isConflict());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactionId").value("T1"))
+                .andExpect(jsonPath("$.fraud").value(false))
+                .andExpect(jsonPath("$.severity").value(0))
+                .andExpect(jsonPath("$.evaluatedAt").doesNotExist());
     }
 }

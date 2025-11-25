@@ -5,7 +5,6 @@ import com.fraudengine.dto.TransactionResponse;
 import com.fraudengine.mapper.TransactionMapper;
 import com.fraudengine.service.FraudDecisionService;
 import com.fraudengine.service.TransactionService;
-import com.fraudengine.repository.FraudDecisionRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
