@@ -23,7 +23,8 @@ public class ImpossibleTravelRule implements FraudRule {
     public RuleResult evaluate(Transaction tx) {
 
         Optional<Transaction> lastTx =
-                transactionRepository.findTopByCustomerIdOrderByTimestampDesc(tx.getCustomerId());
+                transactionRepository.findTopByCustomerIdAndTimestampBeforeOrderByTimestampDesc(tx.getCustomerId(),
+                        tx.getTimestamp());
 
         // No previous transaction -> always safe
         if (lastTx.isEmpty()) {
