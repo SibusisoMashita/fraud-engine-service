@@ -5,9 +5,9 @@
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/fraud_engine
+    url: jdbc:postgresql://localhost:5432/postgres
     username: postgres
-    password: admin
+    password: postgres
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -22,7 +22,7 @@ spring:
     enabled: true
     baseline-on-migrate: true
     create-schemas: true
-    schemas: public
+    schemas: fraud_engine
 
   jackson:
     serialization:

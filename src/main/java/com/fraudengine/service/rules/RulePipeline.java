@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -20,12 +21,24 @@ public class RulePipeline {
 
         List<String> enabled = ruleProperties.getEnabledRules();
 
+        // Normalize enabled list: support enum-style names mapping to actual rule bean names
+        List<String> normalized = enabled.stream()
+                .map(s -> switch (s) {
+                    case "HIGH_VALUE" -> "HighValueTransactionRule";
+                    case "MERCHANT_BLACKLIST" -> "MerchantBlacklistRule";
+                    case "VELOCITY" -> "VelocityRule";
+                    case "IMPOSSIBLE_TRAVEL" -> "ImpossibleTravelRule";
+                    case "OFF_HOURS" -> "OffHoursHighRiskRule";
+                    default -> s;
+                })
+                .collect(Collectors.toList());
+
         List<FraudRule> activeRules = rules.stream()
-                .filter(r -> enabled.contains(r.getRuleName()))
+                .filter(r -> normalized.contains(r.getRuleName()))
                 .toList();
 
-        log.info("[tx={}] 🧩 Active rules = {}", 
-                tx.getTransactionId(), 
+        log.info("[tx={}] \ud83e\udde9 Active rules = {}",
+                tx.getTransactionId(),
                 activeRules.stream().map(FraudRule::getRuleName).toList()
         );
 

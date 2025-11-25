@@ -3,6 +3,7 @@ package com.fraudengine.service.rules;
 import com.fraudengine.config.FraudRuleProperties;
 import com.fraudengine.domain.RuleResult;
 import com.fraudengine.domain.Transaction;
+import com.fraudengine.domain.RuleName; // added
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -63,24 +64,22 @@ class RulePipelineTest {
                 "VELOCITY"
         ));
 
-        // Mock rule names (matching config)
-        when(highValueRule.getRuleName()).thenReturn("HIGH_VALUE");
-        when(blacklistRule.getRuleName()).thenReturn("MERCHANT_BLACKLIST");
-        when(velocityRule.getRuleName()).thenReturn("VELOCITY");
+        // Mock rule names to canonical bean names (pipeline maps aliases -> canonical)
+        when(highValueRule.getRuleName()).thenReturn(RuleName.HIGH_VALUE.value());
+        when(blacklistRule.getRuleName()).thenReturn(RuleName.MERCHANT_BLACKLIST.value());
+        when(velocityRule.getRuleName()).thenReturn(RuleName.VELOCITY.value());
+        when(impossibleTravelRule.getRuleName()).thenReturn(RuleName.IMPOSSIBLE_TRAVEL.value());
+        when(offHoursRule.getRuleName()).thenReturn(RuleName.OFF_HOURS.value());
 
-        when(impossibleTravelRule.getRuleName()).thenReturn("IMPOSSIBLE_TRAVEL");
-        when(offHoursRule.getRuleName()).thenReturn("OFF_HOURS");
-
-        // Mock outputs
-        RuleResult r1 = RuleResult.builder().ruleName("HIGH_VALUE").passed(true).build();
-        RuleResult r2 = RuleResult.builder().ruleName("MERCHANT_BLACKLIST").passed(true).build();
-        RuleResult r3 = RuleResult.builder().ruleName("VELOCITY").passed(false).score(3).build();
+        // Mock outputs with canonical names
+        RuleResult r1 = RuleResult.builder().ruleName(RuleName.HIGH_VALUE.value()).passed(true).build();
+        RuleResult r2 = RuleResult.builder().ruleName(RuleName.MERCHANT_BLACKLIST.value()).passed(true).build();
+        RuleResult r3 = RuleResult.builder().ruleName(RuleName.VELOCITY.value()).passed(false).score(3).build();
 
         when(highValueRule.evaluate(tx, ctx)).thenReturn(r1);
         when(blacklistRule.evaluate(tx, ctx)).thenReturn(r2);
         when(velocityRule.evaluate(tx, ctx)).thenReturn(r3);
 
-        // Pipeline with ALL rules injected – only enabled ones should run
         RulePipeline pipeline = new RulePipeline(
                 List.of(highValueRule, blacklistRule, velocityRule, impossibleTravelRule, offHoursRule),
                 props
@@ -97,12 +96,12 @@ class RulePipelineTest {
         // -------------------------------------------------------
 
         // 1️⃣ Correct number of enabled rules executed
-        assertEquals(3, results.size(), "Only HIGH_VALUE, BLACKLIST, VELOCITY should execute");
+        assertEquals(3, results.size(), "Only HighValueTransactionRule, MerchantBlacklistRule, VelocityRule should execute");
 
         // 2️⃣ Results returned in correct order
-        assertEquals("HIGH_VALUE", results.get(0).getRuleName());
-        assertEquals("MERCHANT_BLACKLIST", results.get(1).getRuleName());
-        assertEquals("VELOCITY", results.get(2).getRuleName());
+        assertEquals(RuleName.HIGH_VALUE.value(), results.get(0).getRuleName());
+        assertEquals(RuleName.MERCHANT_BLACKLIST.value(), results.get(1).getRuleName());
+        assertEquals(RuleName.VELOCITY.value(), results.get(2).getRuleName());
 
         // 3️⃣ Rule with failure score is correct
         assertFalse(results.get(2).isPassed());

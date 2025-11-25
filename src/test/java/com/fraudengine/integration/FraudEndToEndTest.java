@@ -1,8 +1,8 @@
 package com.fraudengine.integration;
 
-import com.fraudengine.containers.PostgresContainerConfig;
 import com.fraudengine.domain.FraudDecision;
 import com.fraudengine.domain.RuleResult;
+import com.fraudengine.domain.RuleName;
 import com.fraudengine.repository.FraudDecisionRepository;
 import com.fraudengine.repository.RuleResultRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -14,6 +14,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -22,7 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @SpringBootTest
 @AutoConfigureMockMvc
-class FraudEndToEndTest extends PostgresContainerConfig {
+class FraudEndToEndTest {
 
     @Autowired
     MockMvc mvc;
@@ -32,14 +34,6 @@ class FraudEndToEndTest extends PostgresContainerConfig {
 
     @Autowired
     FraudDecisionRepository fraudDecisionRepository;
-
-
-    @Test
-    void debugClasspath() {
-        System.out.println("Classpath Resources:");
-        System.out.println(getClass().getClassLoader().getResource("testcontainers.properties"));
-    }
-
 
     @Test
     @DisplayName("E2E: Should process high-value transaction and record rule results + decision")
@@ -65,15 +59,26 @@ class FraudEndToEndTest extends PostgresContainerConfig {
         ).andExpect(status().isOk());
 
         // Step 2: Database assertions (REAL DB!)
-        List<RuleResult> results = ruleResultRepository.findByTransactionId("TX-HV-E2E");
+        List<RuleResult> results = waitForRuleResults("TX-HV-E2E");
         FraudDecision decision = fraudDecisionRepository.findByTransactionId("TX-HV-E2E").orElseThrow();
 
         // Step 3: Assert rule engine behavior
         assertThat(results).isNotEmpty();
-        assertThat(results).anyMatch(r -> r.getRuleName().equals("HIGH_VALUE") && !r.isPassed());
+        assertThat(results).anyMatch(r -> r.getRuleName().equals(RuleName.HIGH_VALUE.value()) && !r.isPassed());
 
         // Step 4: Assert final fraud decision
         assertThat(decision.isFraud()).isTrue();
         assertThat(decision.getSeverity()).isGreaterThan(0);
+    }
+
+    private List<RuleResult> waitForRuleResults(String txId) {
+        Instant start = Instant.now();
+        List<RuleResult> results;
+        do {
+            results = ruleResultRepository.findByTransactionId(txId);
+            if (!results.isEmpty()) return results;
+            try { Thread.sleep(50); } catch (InterruptedException ignored) { }
+        } while (Duration.between(start, Instant.now()).toMillis() < 2000); // wait up to 2s
+        return results; // may be empty
     }
 }
