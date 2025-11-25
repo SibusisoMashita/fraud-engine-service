@@ -1,5 +1,6 @@
 package com.fraudengine.mapper;
 
+import com.fraudengine.domain.Channel;
 import com.fraudengine.domain.Transaction;
 import com.fraudengine.dto.TransactionRequest;
 import org.junit.jupiter.api.Test;
@@ -24,7 +25,7 @@ class TransactionMapperTest {
                 .timestamp(now)
                 .merchant("ShopA")
                 .location("Cape Town")
-                .channel("WEB")
+                .channel(Channel.ONLINE)
                 .build();
 
         Transaction entity = mapper.toEntity(dto);
@@ -35,6 +36,6 @@ class TransactionMapperTest {
         assertEquals(now, entity.getTimestamp());
         assertEquals("ShopA", entity.getMerchant());
         assertEquals("Cape Town", entity.getLocation());
-        assertEquals("WEB", entity.getChannel());
+        assertEquals(Channel.ONLINE.name(), entity.getChannel());
     }
 }

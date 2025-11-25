@@ -15,7 +15,7 @@ public class TransactionMapper {
                 .timestamp(dto.getTimestamp())
                 .merchant(dto.getMerchant())
                 .location(dto.getLocation())
-                .channel(dto.getChannel())
+                .channel(dto.getChannel().name())
                 .build();
     }
 }

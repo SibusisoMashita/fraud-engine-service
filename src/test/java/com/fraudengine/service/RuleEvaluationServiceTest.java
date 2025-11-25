@@ -2,8 +2,9 @@ package com.fraudengine.service;
 
 import com.fraudengine.domain.RuleResult;
 import com.fraudengine.domain.Transaction;
-import com.fraudengine.service.rules.FraudRule;
 import com.fraudengine.repository.RuleResultRepository;
+import com.fraudengine.service.rules.RuleContext;
+import com.fraudengine.service.rules.RulePipeline;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -12,10 +13,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class RuleEvaluationServiceTest {
+
+    @Mock
+    private RulePipeline rulePipeline;
 
     @Mock
     private RuleResultRepository resultRepository;
@@ -23,31 +28,35 @@ class RuleEvaluationServiceTest {
     @Mock
     private FraudDecisionService decisionService;
 
-    @Mock
-    private FraudRule rule1;
-
-    @Mock
-    private FraudRule rule2;
-
     @InjectMocks
     private RuleEvaluationService service;
 
     @Test
-    void shouldRunRules_AndSaveResults_AndBuildDecision() {
-        Transaction tx = Transaction.builder().transactionId("T1").build();
+    void shouldRunPipeline_SaveResults_AndComputeDecision() {
 
-        RuleResult r1 = RuleResult.builder().passed(true).score(0).build();
-        RuleResult r2 = RuleResult.builder().passed(false).score(3).build();
+        Transaction tx = Transaction.builder()
+                .transactionId("T1")
+                .customerId("CUST-001")
+                .build();
 
-        when(rule1.evaluate(tx)).thenReturn(r1);
-        when(rule2.evaluate(tx)).thenReturn(r2);
+        RuleResult r1 = RuleResult.builder().ruleName("RuleA").passed(true).score(0).build();
+        RuleResult r2 = RuleResult.builder().ruleName("RuleB").passed(false).score(5).build();
 
-        // Inject rules list manually
-        service = new RuleEvaluationService(List.of(rule1, rule2), resultRepository, decisionService);
+        List<RuleResult> results = List.of(r1, r2);
 
+        // Mock pipeline
+        when(rulePipeline.run(eq(tx), any(RuleContext.class))).thenReturn(results);
+
+        // Execute
         service.evaluate(tx);
 
-        verify(resultRepository).saveAll(List.of(r1, r2));
-        verify(decisionService).computeDecision(tx, List.of(r1, r2));
+        // Verify rule results persisted
+        verify(resultRepository).saveAll(results);
+
+        // Verify decision computed
+        verify(decisionService).computeDecision(tx, results);
+
+        // Verify pipeline invoked correctly
+        verify(rulePipeline).run(eq(tx), any(RuleContext.class));
     }
 }

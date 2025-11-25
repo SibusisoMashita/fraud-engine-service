@@ -5,11 +5,15 @@ import com.fraudengine.domain.RuleResult;
 import com.fraudengine.domain.Transaction;
 import com.fraudengine.service.RuleConfigService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class OffHoursHighRiskRule implements FraudRule {
+
+    private static final Logger log = LoggerFactory.getLogger(OffHoursHighRiskRule.class);
 
     private final RuleConfigService configService;
 
@@ -25,6 +29,19 @@ public class OffHoursHighRiskRule implements FraudRule {
         boolean risky = (hour >= start && hour <= end);
         boolean passed = !risky;
 
+        // ─────────────────────────────
+        //  Structured Rule Audit Log
+        // ─────────────────────────────
+        log.debug(
+                "rule_evaluation event=OffHoursHighRiskRule transactionId={} customerId={} hour={} startHour={} endHour={} passed={}",
+                tx.getTransactionId(),
+                tx.getCustomerId(),
+                hour,
+                start,
+                end,
+                passed
+        );
+
         return RuleResult.builder()
                 .transactionId(tx.getTransactionId())
                 .ruleName(getRuleName())
@@ -39,4 +56,3 @@ public class OffHoursHighRiskRule implements FraudRule {
         return RuleName.OFF_HOURS.value();
     }
 }
-

@@ -107,6 +107,55 @@ fraud-engine-service
 - **Environment Variables**: Configure environment variables in the `application-local.yml` file.
 - **Configuration Files**: Modify the `application-local.yml` file for local development settings.
 
+
+🐳 Run the Application Locally
+
+Running the Fraud Engine Service locally is easy using Docker Compose.
+This starts PostgreSQL, applies Flyway migrations, and boots the Spring Boot service automatically.
+
+✅ Prerequisites
+
+Install Docker Desktop
+https://www.docker.com/products/docker-desktop/
+
+✅ 1. Open a terminal inside the project
+cd fraud-engine-service
+
+✅ 2. Start the entire stack (App + PostgreSQL)
+docker compose up --build
+
+
+This will:
+
+Start PostgreSQL
+
+Run Flyway DB migrations
+
+Build the application
+
+Start the Fraud Engine REST API
+
+✅ 3. Verify the service is running
+
+Swagger UI:
+
+http://localhost:8080/swagger-ui/index.html
+
+
+Health check:
+
+http://localhost:8080/api/v1/health
+
+✅ 4. Stop all containers
+
+Press CTRL + C, or run:
+
+docker compose down
+
+🎉 Done!
+
+You now have a complete, production-like environment running with one simple command.
+
 ## 🤝 Contributing
 - **How to Contribute**: Fork the repository, create a new branch, and submit a pull request.
 - **Development Setup**: Clone the repository and run `mvn clean install` to build the project.

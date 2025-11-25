@@ -1,6 +1,7 @@
 package com.fraudengine.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fraudengine.domain.Channel;
 import com.fraudengine.domain.FraudDecision;
 import com.fraudengine.dto.TransactionRequest;
 import com.fraudengine.dto.TransactionResponse;
@@ -60,7 +61,7 @@ class TransactionControllerTest {
                 .timestamp(LocalDateTime.now())
                 .merchant("StoreA")
                 .location("Cape Town")
-                .channel("WEB")
+                .channel(Channel.MOBILE)
                 .build();
 
         var txEntity = com.fraudengine.domain.Transaction.builder()
@@ -96,7 +97,7 @@ class TransactionControllerTest {
                 .timestamp(LocalDateTime.now())
                 .merchant("StoreA")
                 .location("Cape Town")
-                .channel("WEB")
+                .channel(Channel.ONLINE)
                 .build();
 
         var txEntity = com.fraudengine.domain.Transaction.builder()

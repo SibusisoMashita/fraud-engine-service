@@ -1,7 +1,7 @@
 package com.fraudengine.service.rules;
 
 import com.fraudengine.domain.Transaction;
-import com.fraudengine.service.MerchantBlacklistService;
+import com.fraudengine.service.MerchantService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -15,7 +15,7 @@ import static org.mockito.Mockito.*;
 class MerchantBlacklistRuleTest {
 
     @Mock
-    private MerchantBlacklistService blacklistService;
+    private MerchantService merchantService;
 
     @InjectMocks
     private MerchantBlacklistRule rule;
@@ -27,13 +27,13 @@ class MerchantBlacklistRuleTest {
                 .merchant("Pick n Pay")
                 .build();
 
-        when(blacklistService.isBlacklisted("Pick n Pay"))
+        when(merchantService.isBlacklisted("Pick n Pay"))
                 .thenReturn(false);
 
         var result = rule.evaluate(tx);
 
         assertTrue(result.isPassed());
-        assertEquals("Merchant clean", result.getReason());
+        assertEquals("Merchant clean or not registered", result.getReason());
     }
 
     @Test
@@ -43,7 +43,7 @@ class MerchantBlacklistRuleTest {
                 .merchant("Scam Store")
                 .build();
 
-        when(blacklistService.isBlacklisted("Scam Store"))
+        when(merchantService.isBlacklisted("Scam Store"))
                 .thenReturn(true);
 
         var result = rule.evaluate(tx);
@@ -51,5 +51,23 @@ class MerchantBlacklistRuleTest {
         assertFalse(result.isPassed());
         assertEquals("Merchant is blacklisted", result.getReason());
         assertEquals(4, result.getScore());
+    }
+
+    @Test
+    void shouldPass_WhenMerchantNotInRegistry() {
+        Transaction tx = Transaction.builder()
+                .transactionId("T1")
+                .merchant("New Unknown Shop")
+                .build();
+
+        // New behavior: if merchant isn't found, service throws
+        when(merchantService.isBlacklisted("New Unknown Shop"))
+                .thenThrow(new IllegalArgumentException("Merchant not found"));
+
+        var result = rule.evaluate(tx);
+
+        // Rule treats unknown merchant as clean
+        assertTrue(result.isPassed());
+        assertEquals("Merchant clean or not registered", result.getReason());
     }
 }
