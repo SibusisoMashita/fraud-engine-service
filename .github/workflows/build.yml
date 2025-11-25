@@ -247,6 +247,7 @@ jobs:
         run: |
           newman run postman/collection.json \
             -e postman/environment.json \
+            --iteration-count 100 \
             --timeout-request 30000 \
             --reporters cli,htmlextra,json \
             --reporter-htmlextra-export newman-report.html \
