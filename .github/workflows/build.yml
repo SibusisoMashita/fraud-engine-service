@@ -1,4 +1,4 @@
-name: CI | Build | Security Scan | Publish | Load Test
+name: CI | Build | Scan | Smoke | Publish | Load Test
 
 on:
   push:
@@ -19,8 +19,8 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      image_tag: ${{ steps.meta.outputs.version }}
       image_name: ${{ steps.repo.outputs.repo }}
+      image_tags: ${{ steps.meta.outputs.tags }}
       jar_path: target/*.jar
 
     steps:
@@ -47,7 +47,7 @@ jobs:
         run: mvn -B clean verify
 
       # Upload Jacoco Report
-      - name: Upload Jacoco
+      - name: Upload Jacoco Report
         uses: actions/upload-artifact@v4
         with:
           name: jacoco-report
@@ -71,6 +71,7 @@ jobs:
             type=ref,event=branch
             type=raw,value=latest,enable={{is_default_branch}}
 
+      # Upload JAR
       - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:
@@ -80,7 +81,7 @@ jobs:
 
 
   # =====================================================
-  # 2) DOCKER BUILD + SCAN + SMOKE TEST + PUSH
+  # 2) DOCKER BUILD + TRIVY SCAN + SMOKE TEST + PUSH
   # =====================================================
   docker:
     needs: build-test
@@ -103,7 +104,7 @@ jobs:
           name: fraud-engine-jar
           path: target
 
-      # Buildx Setup
+      # Setup Buildx
       - uses: docker/setup-buildx-action@v3
 
       # Docker Cache
@@ -124,49 +125,109 @@ jobs:
 
       # Docker Metadata
       - name: Docker Metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ needs.build-test.outputs.image_name }}
-          tags: |
-            type=sha
-            type=ref,event=branch
-            type=raw,value=latest,enable={{is_default_branch}}
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ghcr.io/${{ needs.build-test.outputs.image_name }}
+        tags: |
+          type=sha
+          type=ref,event=branch
+          type=raw,value=latest,enable={{is_default_branch}}
 
-      # Build image once (cached)
-      - name: Docker Build (cached)
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: false
-          load: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new
+        # Build image once
+        - name: Docker Build (cached)
+          uses: docker/build-push-action@v5
+          with:
+            context: .
+            push: false
+            load: true
+            tags: ${{ steps.meta.outputs.tags }}
+            labels: ${{ steps.meta.outputs.labels }}
+            cache-from: type=local,src=/tmp/.buildx-cache
+            cache-to: type=local,dest=/tmp/.buildx-cache-new
 
-      # Move updated cache
-      - name: Move updated Docker cache
+        - name: Move Updated Docker Cache
+          run: |
+            rm -rf /tmp/.buildx-cache
+            mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+        # --- SECURITY SCAN ----------------------------------
+        - name: Trivy Scan
+          uses: aquasecurity/trivy-action@master
+          with:
+            image-ref: ${{ steps.meta.outputs.tags }}
+            format: sarif
+            output: trivy-results.sarif
+
+        - name: Upload SARIF
+          uses: github/codeql-action/upload-sarif@v3
+          with:
+            sarif_file: trivy-results.sarif
+
+
+        # --- SMOKE TEST --------------------------------------
+        - name: Start Postgres
+          run: |
+            docker run -d \
+              --name fraud-postgres \
+              -e POSTGRES_DB=fraud_engine \
+              -e POSTGRES_USER=postgres \
+              -e POSTGRES_PASSWORD=admin \
+              -p 5432:5432 postgres:15
+            
+            echo "Waiting for Postgres..."
+            for i in {1..20}; do
+              docker exec fraud-postgres pg_isready && break
+              sleep 2
+            done
+
+        - name: Start Fraud Engine (Smoke Test)
+          run: |
+            docker run -d --name fraud-test \
+              --network host \
+              -e SPRING_PROFILES_ACTIVE=docker \
+              ${{ steps.meta.outputs.tags }}
+            
+            sleep 25
+
+        - name: Smoke Test /health
+          run: |
+            curl -v --fail http://localhost:8080/api/v1/health
+
+        - name: Dump Logs on Failure
+          if: failure()
+          run: |
+            docker logs fraud-test || true
+            docker logs fraud-postgres || true
+
+        # Push image only after smoke tests passed
+        - name: Push Docker Image
+          uses: docker/build-push-action@v5
+          with:
+            context: .
+            push: true
+            tags: ${{ steps.meta.outputs.tags }}
+            labels: ${{ steps.meta.outputs.labels }}
+
+
+
+  # =====================================================
+  # 3) LOAD TEST (Uses the SAME Tested Image)
+  # =====================================================
+  load-test:
+    needs: docker
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pull tested image
+      - name: Pull Tested Image
         run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+          docker pull ${{ needs.docker.outputs.final_image }}
+          docker tag ${{ needs.docker.outputs.final_image }} fraud-engine:latest
 
-      # --- SECURITY SCAN ----------------------------------
-      - name: Trivy Scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ steps.meta.outputs.tags }}
-          format: sarif
-          output: trivy-results.sarif
-
-      - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-results.sarif
-
-
-      # --- SMOKE TEST --------------------------------------
-      # Start Postgres
+      # Start Postgres for load-test
       - name: Start Postgres
         run: |
           docker run -d \
@@ -176,65 +237,21 @@ jobs:
             -e POSTGRES_PASSWORD=admin \
             -p 5432:5432 postgres:15
 
+          echo "Waiting for Postgres..."
           for i in {1..20}; do
             docker exec fraud-postgres pg_isready && break
             sleep 2
           done
 
-      # Start App Container
-      - name: Start Fraud Engine (Smoke Test)
-        run: |
-          docker run -d --name fraud-test \
-            --network host \
-            -e SPRING_PROFILES_ACTIVE=docker \
-            ${{ steps.meta.outputs.tags }}
-
-          sleep 20
-
-      # Hit /health
-      - name: Smoke Test /health
-        run: |
-          curl -v --fail http://localhost:8080/api/v1/health
-
-      # Dump logs on failure
-      - name: Dump Logs
-        if: failure()
-        run: |
-          docker logs fraud-test || true
-          docker logs fraud-postgres || true
-
-      # Push image only if everything passed
-      - name: Push Docker Image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
-
-
-  # =====================================================
-  # 3) LOAD TEST (Uses same Docker image)
-  # =====================================================
-  load-test:
-    needs: docker
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      # Pull the image built in the previous job
-      - name: Pull tested image
-        run: |
-          docker pull ${{ needs.docker.outputs.final_image }}
-          docker tag ${{ needs.docker.outputs.final_image }} fraud-engine:latest
-
-      # Run service
+      # Start Fraud Engine
       - name: Start Fraud Engine
         run: |
-          docker run -d -p 8080:8080 --name fraud-engine fraud-engine:latest
-          sleep 15
+          docker run -d \
+            --name fraud-engine \
+            --network host \
+            -e SPRING_PROFILES_ACTIVE=docker \
+            fraud-engine:latest
+          sleep 20
 
       # Cache NPM
       - name: Cache NPM
@@ -248,7 +265,7 @@ jobs:
       - name: Install Newman
         run: sudo npm install -g newman newman-reporter-htmlextra
 
-      # Run Newman Load Tests
+      # Run Load Tests
       - name: Run Load Tests
         run: |
           newman run postman/collection.json \
@@ -258,7 +275,7 @@ jobs:
             --reporter-htmlextra-export newman-report.html \
             --reporter-json-export newman-report.json
 
-      # Upload reports
+      # Upload load test results
       - name: Upload Load Test Reports
         uses: actions/upload-artifact@v4
         with:
@@ -267,8 +284,8 @@ jobs:
             newman-report.html
             newman-report.json
 
-      # Performance Gate
-      - name: Enforce Thresholds
+      # Threshold enforcement
+      - name: Enforce Performance Threshold
         run: |
           FAIL=$(jq '.run.stats.requests.failed' newman-report.json)
           if [ "$FAIL" -gt 5 ]; then
