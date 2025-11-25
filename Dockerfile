@@ -5,15 +5,18 @@ FROM maven:3.9.6-eclipse-temurin-21 AS build
 
 WORKDIR /app
 
-# Copy Maven wrapper and pom.xml first (best for caching)
+# Copy Maven wrapper and config first (best layer caching)
 COPY pom.xml .
 COPY mvnw .
 COPY .mvn .mvn
 
+# Make mvnw executable (REQUIRED on Linux)
+RUN chmod +x mvnw
+
 # Pre-download Maven dependencies
 RUN ./mvnw -q -e -B dependency:go-offline
 
-# Copy the rest of the project
+# Copy the full project
 COPY src ./src
 
 # Build the application
@@ -27,13 +30,13 @@ FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-# Copy final JAR from build stage
+# Copy final artifact from build stage
 COPY --from=build /app/target/*.jar app.jar
 
 # Expose application port
 EXPOSE 8080
 
-# Optional optimized JVM flags for containers
+# Optimized JVM flags for containers
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75"
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
