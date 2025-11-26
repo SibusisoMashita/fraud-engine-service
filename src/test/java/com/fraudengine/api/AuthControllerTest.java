@@ -1,8 +1,8 @@
 package com.fraudengine.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fraudengine.security.JwtService;
-import com.fraudengine.security.dto.LoginRequest;
+import com.fraudengine.service.JwtService;
+import com.fraudengine.dto.LoginRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;

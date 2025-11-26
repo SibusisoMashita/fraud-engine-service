@@ -1,4 +1,4 @@
-package com.fraudengine.security.dto;
+package com.fraudengine.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;

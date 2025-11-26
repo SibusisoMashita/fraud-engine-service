@@ -1,7 +1,8 @@
-package com.fraudengine.security;
+package com.fraudengine.config;
 
-import com.fraudengine.security.JwtExceptions.ExpiredTokenException;
-import com.fraudengine.security.JwtExceptions.InvalidTokenException;
+import com.fraudengine.exception.JwtExceptions.ExpiredTokenException;
+import com.fraudengine.exception.JwtExceptions.InvalidTokenException;
+import com.fraudengine.service.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import jakarta.servlet.FilterChain;
@@ -29,8 +30,16 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private static final Set<String> PUBLIC_PATHS = Set.of(
-            "/auth/login", "/actuator/health", "/v3/api-docs", "/v3/api-docs/", "/swagger-ui", "/swagger-ui/", "/swagger-ui.html"
+            "/auth/login",
+            "/actuator/health",
+            "/api/v1/health",
+            "/v3/api-docs",
+            "/v3/api-docs/",
+            "/swagger-ui",
+            "/swagger-ui/",
+            "/swagger-ui.html"
     );
+
 
     public JwtFilter(JwtService jwtService) {
         this.jwtService = jwtService;
@@ -69,9 +78,7 @@ public class JwtFilter extends OncePerRequestFilter {
             Authentication auth = new UsernamePasswordAuthenticationToken(subject, null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
             SecurityContextHolder.getContext().setAuthentication(auth);
             filterChain.doFilter(request, response);
-        } catch (ExpiredTokenException e) {
-            unauthorized(response, e.getMessage());
-        } catch (InvalidTokenException e) {
+        } catch (ExpiredTokenException | InvalidTokenException e) {
             unauthorized(response, e.getMessage());
         }
     }

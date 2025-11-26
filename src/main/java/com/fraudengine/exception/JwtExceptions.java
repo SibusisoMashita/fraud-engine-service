@@ -1,4 +1,4 @@
-package com.fraudengine.security;
+package com.fraudengine.exception;
 
 /**
  * Simple custom runtime exceptions for JWT handling to allow GlobalExceptionHandler

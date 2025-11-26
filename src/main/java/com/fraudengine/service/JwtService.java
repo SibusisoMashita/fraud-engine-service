@@ -1,4 +1,4 @@
-package com.fraudengine.security;
+package com.fraudengine.service;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
@@ -12,7 +12,7 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.Optional;
 
-import static com.fraudengine.security.JwtExceptions.*;
+import static com.fraudengine.exception.JwtExceptions.*;
 
 @Service
 public class JwtService implements InitializingBean {

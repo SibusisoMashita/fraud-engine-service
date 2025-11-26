@@ -1,8 +1,8 @@
 package com.fraudengine.api;
 
-import com.fraudengine.security.JwtService;
-import com.fraudengine.security.dto.JwtResponse;
-import com.fraudengine.security.dto.LoginRequest;
+import com.fraudengine.service.JwtService;
+import com.fraudengine.dto.JwtResponse;
+import com.fraudengine.dto.LoginRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

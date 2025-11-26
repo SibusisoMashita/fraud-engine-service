@@ -14,9 +14,9 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.fraudengine.security.JwtExceptions.ExpiredTokenException;
-import com.fraudengine.security.JwtExceptions.InvalidTokenException;
-import com.fraudengine.security.JwtExceptions.MissingSecretException;
+import com.fraudengine.exception.JwtExceptions.ExpiredTokenException;
+import com.fraudengine.exception.JwtExceptions.InvalidTokenException;
+import com.fraudengine.exception.JwtExceptions.MissingSecretException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
