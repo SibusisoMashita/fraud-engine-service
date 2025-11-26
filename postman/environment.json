@@ -1,76 +1,94 @@
 {
-	"id": "12ea04a0-a82f-4595-a374-28c8cad34afb",
-	"name": "fraud-env",
-	"values": [
-		{
-			"key": "baseUrl",
-			"value": "http://localhost:8080/api/v1",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "transactionId",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "customerId",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "amount",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "timestamp",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "merchant",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "location",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "loadAmountMin",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "loadAmountMax",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "baseTimestamp",
-			"value": "",
-			"type": "any",
-			"enabled": true
-		},
-		{
-			"key": "triggerTimestamp",
-			"value": "",
-			"type": "any",
-			"enabled": true
-		}
-	],
-	"color": null,
-	"_postman_variable_scope": "environment",
-	"_postman_exported_at": "2025-11-25T19:49:04.990Z",
-	"_postman_exported_using": "Postman/11.73.0"
+  "id": "12ea04a0-a82f-4595-a374-28c8cad34afb",
+  "name": "fraud-env",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api/v1",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "transactionId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "customerId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "amount",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "timestamp",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "merchant",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "location",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "loadAmountMin",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "loadAmountMax",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "baseTimestamp",
+      "value": "",
+      "type": "any",
+      "enabled": true
+    },
+    {
+      "key": "triggerTimestamp",
+      "value": "",
+      "type": "any",
+      "enabled": true
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "token_type",
+      "value": "",
+      "type": "any",
+      "enabled": true
+    },
+    {
+      "key": "token_expires_at",
+      "value": "",
+      "type": "any",
+      "enabled": true
+    }
+  ],
+  "color": null,
+  "_postman_variable_scope": "environment",
+  "_postman_exported_at": "2025-11-26T10:14:14.829Z",
+  "_postman_exported_using": "Postman/11.73.2"
 }

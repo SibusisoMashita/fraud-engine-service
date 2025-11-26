@@ -1,351 +1,825 @@
 {
-	"info": {
-		"_postman_id": "65719bcd-9f00-46a9-a813-666b0c759bd4",
-		"name": "Fraud Engine – Performance & Rule Tests",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "31934986"
-	},
-	"item": [
-		{
-			"name": "HighValue",
-			"item": [
-				{
-					"name": "transactions",
-					"event": [
-						{
-							"listen": "prerequest",
-							"script": {
-								"exec": [
-									"pm.environment.set(\"transactionId\", \"TX-HIGHVALUE-\" + Date.now());\r",
-									"pm.environment.set(\"customerId\", \"CUST-100\");\r",
-									"pm.environment.set(\"amount\", 25000);\r",
-									"pm.environment.set(\"timestamp\", \"2025-01-25T10:15:00\");\r",
-									"pm.environment.set(\"merchant\", \"Woolworths\");\r",
-									"pm.environment.set(\"location\", \"CPT\");\r",
-									""
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n  \"transactionId\": \"{{transactionId}}\",\r\n  \"customerId\": \"{{customerId}}\",\r\n  \"amount\": {{amount}},\r\n  \"timestamp\": \"{{timestamp}}\",\r\n  \"merchant\": \"{{merchant}}\",\r\n  \"location\": \"{{location}}\",\r\n  \"channel\": \"CARD\"\r\n}\r\n",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/transactions",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"transactions"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "OffHours",
-			"item": [
-				{
-					"name": "transactions",
-					"event": [
-						{
-							"listen": "prerequest",
-							"script": {
-								"exec": [
-									"// Dynamic IDs\r",
-									"pm.environment.set(\"transactionId\", \"TX-OFFHOURS-\" + Date.now());\r",
-									"pm.environment.set(\"customerId\", \"CUST-101\");\r",
-									"pm.environment.set(\"amount\", 500);\r",
-									"pm.environment.set(\"merchant\", \"Checkers\");\r",
-									"pm.environment.set(\"location\", \"CPT\");\r",
-									"\r",
-									"// Generate a timestamp between 00:00 and 04:00 today\r",
-									"const now = new Date();\r",
-									"const offHoursDate = new Date();\r",
-									"\r",
-									"// Force today’s date, but override time\r",
-									"offHoursDate.setHours(Math.floor(Math.random() * 4),  // 0–3 hours\r",
-									"                      Math.floor(Math.random() * 60), // minutes 0–59\r",
-									"                      Math.floor(Math.random() * 60)); // seconds 0–59\r",
-									"\r",
-									"// Format as ISO (Spring Boot friendly)\r",
-									"const isoTimestamp = offHoursDate.toISOString();\r",
-									"\r",
-									"pm.environment.set(\"timestamp\", isoTimestamp);\r",
-									"\r",
-									"// Log for debugging\r",
-									"console.log(\"Generated OffHours timestamp:\", isoTimestamp);\r",
-									""
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n  \"transactionId\": \"{{transactionId}}\",\r\n  \"customerId\": \"{{customerId}}\",\r\n  \"amount\": {{amount}},\r\n  \"timestamp\": \"{{timestamp}}\",\r\n  \"merchant\": \"{{merchant}}\",\r\n  \"location\": \"{{location}}\",\r\n  \"channel\": \"CARD\"\r\n}\r\n",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/transactions",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"transactions"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "MerchantBlacklist",
-			"item": [
-				{
-					"name": "transactions",
-					"event": [
-						{
-							"listen": "prerequest",
-							"script": {
-								"exec": [
-									"// Dynamic identifiers\r",
-									"pm.environment.set(\"transactionId\", \"TX-BLACKLIST-\" + Date.now());\r",
-									"pm.environment.set(\"customerId\", \"CUST-102\");\r",
-									"pm.environment.set(\"amount\", 150);\r",
-									"pm.environment.set(\"merchant\", \"FraudStore\"); // Blacklisted\r",
-									"pm.environment.set(\"location\", \"CPT\");\r",
-									"\r",
-									"// Generate current timestamp (ISO)\r",
-									"const nowIso = new Date().toISOString();\r",
-									"pm.environment.set(\"timestamp\", nowIso);\r",
-									"\r",
-									"console.log(\"Generated timestamp:\", nowIso);\r",
-									""
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n  \"transactionId\": \"{{transactionId}}\",\r\n  \"customerId\": \"{{customerId}}\",\r\n  \"amount\": {{amount}},\r\n  \"timestamp\": \"{{timestamp}}\",\r\n  \"merchant\": \"{{merchant}}\",\r\n  \"location\": \"{{location}}\",\r\n  \"channel\": \"CARD\"\r\n}\r\n",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/transactions",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"transactions"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "ImpossibleTravel",
-			"item": [
-				{
-					"name": "Baseline",
-					"event": [
-						{
-							"listen": "prerequest",
-							"script": {
-								"exec": [
-									"// Generate dynamic timestamps\r",
-									"let baseTime = new Date();\r",
-									"pm.environment.set(\"baseTimestamp\", baseTime.toISOString());\r",
-									"\r",
-									"// Dynamic variables\r",
-									"pm.environment.set(\"transactionId\", \"TX-TRAVEL-BASE-\" + Date.now());\r",
-									"pm.environment.set(\"customerId\", \"CUST-103\");\r",
-									"pm.environment.set(\"amount\", 100);\r",
-									"pm.environment.set(\"timestamp\", pm.environment.get(\"baseTimestamp\"));\r",
-									"pm.environment.set(\"merchant\", \"Pick n Pay\");\r",
-									"pm.environment.set(\"location\", \"CPT\");\r",
-									""
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n  \"transactionId\": \"{{transactionId}}\",\r\n  \"customerId\": \"{{customerId}}\",\r\n  \"amount\": {{amount}},\r\n  \"timestamp\": \"{{timestamp}}\",\r\n  \"merchant\": \"{{merchant}}\",\r\n  \"location\": \"{{location}}\",\r\n  \"channel\": \"CARD\"\r\n}\r\n",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/transactions",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"transactions"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Velocity",
-			"item": [
-				{
-					"name": "TX1 – 12:00:00",
-					"event": [
-						{
-							"listen": "prerequest",
-							"script": {
-								"exec": [
-									"pm.environment.set(\"transactionId\", \"TX-VEL-001-\" + Date.now());\r",
-									"pm.environment.set(\"customerId\", \"CUST-104\");\r",
-									"pm.environment.set(\"amount\", 50);\r",
-									"pm.environment.set(\"timestamp\", \"2025-01-25T12:00:00\");\r",
-									"pm.environment.set(\"merchant\", \"Spar\");\r",
-									"pm.environment.set(\"location\", \"CPT\");\r",
-									""
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n  \"transactionId\": \"{{transactionId}}\",\r\n  \"customerId\": \"{{customerId}}\",\r\n  \"amount\": {{amount}},\r\n  \"timestamp\": \"{{timestamp}}\",\r\n  \"merchant\": \"{{merchant}}\",\r\n  \"location\": \"{{location}}\",\r\n  \"channel\": \"CARD\"\r\n}\r\n",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/transactions",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"transactions"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "LoadTest",
-			"item": [
-				{
-					"name": "transactions",
-					"event": [
-						{
-							"listen": "prerequest",
-							"script": {
-								"exec": [
-									"function rand(min, max) {\r",
-									"    return Math.floor(Math.random() * (max - min + 1)) + min;\r",
-									"}\r",
-									"\r",
-									"// Random high-value or normal\r",
-									"pm.environment.set(\"amount\", rand(50, 30000));\r",
-									"\r",
-									"// Random fraud/no-fraud merchants\r",
-									"const merchants = [\"Woolworths\", \"Checkers\", \"FraudStore\", \"SuspiciousMerchant\", \"Spar\"];\r",
-									"pm.environment.set(\"merchant\", merchants[rand(0, merchants.length - 1)]);\r",
-									"\r",
-									"// Random CPT/JHB/DBN\r",
-									"const locations = [\"CPT\", \"JHB\", \"DBN\"];\r",
-									"pm.environment.set(\"location\", locations[rand(0, locations.length - 1)]);\r",
-									"\r",
-									"// Always unique\r",
-									"pm.environment.set(\"transactionId\", \"LOAD-\" + Date.now() + \"-\" + rand(1,9999));\r",
-									"pm.environment.set(\"customerId\", \"CUST-\" + rand(1000, 9999));\r",
-									"pm.environment.set(\"timestamp\", new Date().toISOString());\r",
-									""
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n  \"transactionId\": \"{{transactionId}}\",\r\n  \"customerId\": \"{{customerId}}\",\r\n  \"amount\": {{amount}},\r\n  \"timestamp\": \"{{timestamp}}\",\r\n  \"merchant\": \"{{merchant}}\",\r\n  \"location\": \"{{location}}\",\r\n  \"channel\": \"CARD\"\r\n}\r\n",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/transactions",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"transactions"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		}
-	]
+  "info": {
+    "_postman_id": "65719bcd-9f00-46a9-a813-666b0c759bd4",
+    "name": "Fraud Engine – Performance & Rule Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "31934986"
+  },
+  "item": [
+    {
+      "name": "HighValue",
+      "item": [
+        {
+          "name": "transactions",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.environment.set(\"transactionId\", \"TX-HIGHVALUE-\" + Date.now());\r",
+                  "pm.environment.set(\"customerId\", \"CUST-100\");\r",
+                  "pm.environment.set(\"amount\", 25000);\r",
+                  "pm.environment.set(\"timestamp\", \"2025-01-25T10:15:00\");\r",
+                  "pm.environment.set(\"merchant\", \"Woolworths\");\r",
+                  "pm.environment.set(\"location\", \"CPT\");\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"transactionId\": \"{{transactionId}}\",\r\n  \"customerId\": \"{{customerId}}\",\r\n  \"amount\": {{amount}},\r\n  \"timestamp\": \"{{timestamp}}\",\r\n  \"merchant\": \"{{merchant}}\",\r\n  \"location\": \"{{location}}\",\r\n  \"channel\": \"CARD\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {},
+            "exec": [
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {},
+            "exec": [
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OffHours",
+      "item": [
+        {
+          "name": "transactions",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Dynamic IDs\r",
+                  "pm.environment.set(\"transactionId\", \"TX-OFFHOURS-\" + Date.now());\r",
+                  "pm.environment.set(\"customerId\", \"CUST-101\");\r",
+                  "pm.environment.set(\"amount\", 500);\r",
+                  "pm.environment.set(\"merchant\", \"Checkers\");\r",
+                  "pm.environment.set(\"location\", \"CPT\");\r",
+                  "\r",
+                  "// Generate a timestamp between 00:00 and 04:00 today\r",
+                  "const now = new Date();\r",
+                  "const offHoursDate = new Date();\r",
+                  "\r",
+                  "// Force today’s date, but override time\r",
+                  "offHoursDate.setHours(Math.floor(Math.random() * 4),  // 0–3 hours\r",
+                  "                      Math.floor(Math.random() * 60), // minutes 0–59\r",
+                  "                      Math.floor(Math.random() * 60)); // seconds 0–59\r",
+                  "\r",
+                  "// Format as ISO (Spring Boot friendly)\r",
+                  "const isoTimestamp = offHoursDate.toISOString();\r",
+                  "\r",
+                  "pm.environment.set(\"timestamp\", isoTimestamp);\r",
+                  "\r",
+                  "// Log for debugging\r",
+                  "console.log(\"Generated OffHours timestamp:\", isoTimestamp);\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"transactionId\": \"{{transactionId}}\",\r\n  \"customerId\": \"{{customerId}}\",\r\n  \"amount\": {{amount}},\r\n  \"timestamp\": \"{{timestamp}}\",\r\n  \"merchant\": \"{{merchant}}\",\r\n  \"location\": \"{{location}}\",\r\n  \"channel\": \"CARD\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {},
+            "exec": [
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {},
+            "exec": [
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "MerchantBlacklist",
+      "item": [
+        {
+          "name": "transactions",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Dynamic identifiers\r",
+                  "pm.environment.set(\"transactionId\", \"TX-BLACKLIST-\" + Date.now());\r",
+                  "pm.environment.set(\"customerId\", \"CUST-102\");\r",
+                  "pm.environment.set(\"amount\", 150);\r",
+                  "pm.environment.set(\"merchant\", \"FraudStore\"); // Blacklisted\r",
+                  "pm.environment.set(\"location\", \"CPT\");\r",
+                  "\r",
+                  "// Generate current timestamp (ISO)\r",
+                  "const nowIso = new Date().toISOString();\r",
+                  "pm.environment.set(\"timestamp\", nowIso);\r",
+                  "\r",
+                  "console.log(\"Generated timestamp:\", nowIso);\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"transactionId\": \"{{transactionId}}\",\r\n  \"customerId\": \"{{customerId}}\",\r\n  \"amount\": {{amount}},\r\n  \"timestamp\": \"{{timestamp}}\",\r\n  \"merchant\": \"{{merchant}}\",\r\n  \"location\": \"{{location}}\",\r\n  \"channel\": \"CARD\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {},
+            "exec": [
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {},
+            "exec": [
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ImpossibleTravel",
+      "item": [
+        {
+          "name": "Baseline",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Generate dynamic timestamps\r",
+                  "let baseTime = new Date();\r",
+                  "pm.environment.set(\"baseTimestamp\", baseTime.toISOString());\r",
+                  "\r",
+                  "// Dynamic variables\r",
+                  "pm.environment.set(\"transactionId\", \"TX-TRAVEL-BASE-\" + Date.now());\r",
+                  "pm.environment.set(\"customerId\", \"CUST-103\");\r",
+                  "pm.environment.set(\"amount\", 100);\r",
+                  "pm.environment.set(\"timestamp\", pm.environment.get(\"baseTimestamp\"));\r",
+                  "pm.environment.set(\"merchant\", \"Pick n Pay\");\r",
+                  "pm.environment.set(\"location\", \"CPT\");\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"transactionId\": \"{{transactionId}}\",\r\n  \"customerId\": \"{{customerId}}\",\r\n  \"amount\": {{amount}},\r\n  \"timestamp\": \"{{timestamp}}\",\r\n  \"merchant\": \"{{merchant}}\",\r\n  \"location\": \"{{location}}\",\r\n  \"channel\": \"CARD\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Trigger",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Retrieve baseline timestamp\r",
+                  "let base = new Date(pm.environment.get(\"baseTimestamp\"));\r",
+                  "\r",
+                  "// Add 3 minutes — impossible travel window\r",
+                  "let triggerTime = new Date(base.getTime() + 3 * 60 * 1000);\r",
+                  "pm.environment.set(\"triggerTimestamp\", triggerTime.toISOString());\r",
+                  "\r",
+                  "// Dynamic variables\r",
+                  "pm.environment.set(\"transactionId\", \"TX-TRAVEL-TRIGGER-\" + Date.now());\r",
+                  "pm.environment.set(\"customerId\", \"CUST-103\"); // SAME CUSTOMER\r",
+                  "pm.environment.set(\"amount\", 100);\r",
+                  "pm.environment.set(\"timestamp\", pm.environment.get(\"triggerTimestamp\"));\r",
+                  "pm.environment.set(\"merchant\", \"Pick n Pay\");\r",
+                  "pm.environment.set(\"location\", \"JHB\"); // FAR AWAY\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"transactionId\": \"{{transactionId}}\",\r\n  \"customerId\": \"{{customerId}}\",\r\n  \"amount\": {{amount}},\r\n  \"timestamp\": \"{{timestamp}}\",\r\n  \"merchant\": \"{{merchant}}\",\r\n  \"location\": \"{{location}}\",\r\n  \"channel\": \"CARD\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {},
+            "exec": [
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {},
+            "exec": [
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Velocity",
+      "item": [
+        {
+          "name": "TX1 – 12:00:00",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.environment.set(\"transactionId\", \"TX-VEL-001-\" + Date.now());\r",
+                  "pm.environment.set(\"customerId\", \"CUST-104\");\r",
+                  "pm.environment.set(\"amount\", 50);\r",
+                  "pm.environment.set(\"timestamp\", \"2025-01-25T12:00:00\");\r",
+                  "pm.environment.set(\"merchant\", \"Spar\");\r",
+                  "pm.environment.set(\"location\", \"CPT\");\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"transactionId\": \"{{transactionId}}\",\r\n  \"customerId\": \"{{customerId}}\",\r\n  \"amount\": {{amount}},\r\n  \"timestamp\": \"{{timestamp}}\",\r\n  \"merchant\": \"{{merchant}}\",\r\n  \"location\": \"{{location}}\",\r\n  \"channel\": \"CARD\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TX2 – 12:00:20 (20s later)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.environment.set(\"transactionId\", \"TX-VEL-002-\" + Date.now());\r",
+                  "pm.environment.set(\"customerId\", \"CUST-104\");\r",
+                  "pm.environment.set(\"amount\", 60);\r",
+                  "pm.environment.set(\"timestamp\", \"2025-01-25T12:00:20\");\r",
+                  "pm.environment.set(\"merchant\", \"Spar\");\r",
+                  "pm.environment.set(\"location\", \"CPT\");\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"transactionId\": \"{{transactionId}}\",\r\n  \"customerId\": \"{{customerId}}\",\r\n  \"amount\": {{amount}},\r\n  \"timestamp\": \"{{timestamp}}\",\r\n  \"merchant\": \"{{merchant}}\",\r\n  \"location\": \"{{location}}\",\r\n  \"channel\": \"CARD\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TX3 – 12:00:40 (20s later)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.environment.set(\"transactionId\", \"TX-VEL-003-\" + Date.now());\r",
+                  "pm.environment.set(\"customerId\", \"CUST-104\");\r",
+                  "pm.environment.set(\"amount\", 55);\r",
+                  "pm.environment.set(\"timestamp\", \"2025-01-25T12:00:40\");\r",
+                  "pm.environment.set(\"merchant\", \"Spar\");\r",
+                  "pm.environment.set(\"location\", \"CPT\");\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"transactionId\": \"{{transactionId}}\",\r\n  \"customerId\": \"{{customerId}}\",\r\n  \"amount\": {{amount}},\r\n  \"timestamp\": \"{{timestamp}}\",\r\n  \"merchant\": \"{{merchant}}\",\r\n  \"location\": \"{{location}}\",\r\n  \"channel\": \"CARD\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TX4 – SHOULD TRIGGER Velocity Rule",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.environment.set(\"transactionId\", \"TX-VEL-004-\" + Date.now());\r",
+                  "pm.environment.set(\"customerId\", \"CUST-104\");\r",
+                  "pm.environment.set(\"amount\", 70);\r",
+                  "pm.environment.set(\"timestamp\", \"2025-01-25T12:00:50\");\r",
+                  "pm.environment.set(\"merchant\", \"Spar\");\r",
+                  "pm.environment.set(\"location\", \"CPT\");\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"transactionId\": \"{{transactionId}}\",\r\n  \"customerId\": \"{{customerId}}\",\r\n  \"amount\": {{amount}},\r\n  \"timestamp\": \"{{timestamp}}\",\r\n  \"merchant\": \"{{merchant}}\",\r\n  \"location\": \"{{location}}\",\r\n  \"channel\": \"CARD\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {},
+            "exec": [
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {},
+            "exec": [
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "LoadTest",
+      "item": [
+        {
+          "name": "transactions",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "function rand(min, max) {\r",
+                  "    return Math.floor(Math.random() * (max - min + 1)) + min;\r",
+                  "}\r",
+                  "\r",
+                  "// Random high-value or normal\r",
+                  "pm.environment.set(\"amount\", rand(50, 30000));\r",
+                  "\r",
+                  "// Random fraud/no-fraud merchants\r",
+                  "const merchants = [\"Woolworths\", \"Checkers\", \"FraudStore\", \"SuspiciousMerchant\", \"Spar\"];\r",
+                  "pm.environment.set(\"merchant\", merchants[rand(0, merchants.length - 1)]);\r",
+                  "\r",
+                  "// Random CPT/JHB/DBN\r",
+                  "const locations = [\"CPT\", \"JHB\", \"DBN\"];\r",
+                  "pm.environment.set(\"location\", locations[rand(0, locations.length - 1)]);\r",
+                  "\r",
+                  "// Always unique\r",
+                  "pm.environment.set(\"transactionId\", \"LOAD-\" + Date.now() + \"-\" + rand(1,9999));\r",
+                  "pm.environment.set(\"customerId\", \"CUST-\" + rand(1000, 9999));\r",
+                  "pm.environment.set(\"timestamp\", new Date().toISOString());\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"transactionId\": \"{{transactionId}}\",\r\n  \"customerId\": \"{{customerId}}\",\r\n  \"amount\": {{amount}},\r\n  \"timestamp\": \"{{timestamp}}\",\r\n  \"merchant\": \"{{merchant}}\",\r\n  \"location\": \"{{location}}\",\r\n  \"channel\": \"CARD\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {},
+            "exec": [
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {},
+            "exec": [
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "let res = pm.response.json();\r",
+                  "\r",
+                  "if (res && res.token) {\r",
+                  "    pm.environment.set(\"token\", res.token);\r",
+                  "    pm.environment.set(\"token_type\", res.type || \"Bearer\");\r",
+                  "    pm.environment.set(\"token_expires_at\", res.expiresAt);\r",
+                  "\r",
+                  "    console.log(\"JWT saved to environment variables:\", res.token);\r",
+                  "} else {\r",
+                  "    console.error(\"No token found in response.\");\r",
+                  "}\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"username\": \"admin\",\r\n  \"password\": \"password123\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8080/auth/login",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
 }
