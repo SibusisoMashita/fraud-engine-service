@@ -238,6 +238,33 @@ jobs:
             fraud-engine:latest
           sleep 20
 
+
+      # ===========================================
+      #  JWT AUTHENTICATION (only update added)
+      # ===========================================
+      - name: Authenticate to get JWT token
+        run: |
+          echo "Requesting JWT..."
+          RESPONSE=$(curl -s -X POST http://localhost:8080/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"username":"admin", "password":"password123"}')
+
+          TOKEN=$(echo $RESPONSE | jq -r '.token')
+
+          if [ "$TOKEN" = "null" ] || [ -z "$TOKEN" ]; then
+            echo "❌ Failed to retrieve JWT token"
+            echo "Response: $RESPONSE"
+            exit 1
+          fi
+
+          echo "Retrieved token: $TOKEN"
+
+          jq --arg t "$TOKEN" '.values += [{"key":"token","value":$t,"type":"string"}]' \
+            postman/environment.json > postman/environment.updated.json
+
+          mv postman/environment.updated.json postman/environment.json
+
+
       - name: Cache NPM
         uses: actions/cache@v4
         with:
