@@ -13,6 +13,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -21,9 +23,14 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.test.context.TestPropertySource;
+
 @ActiveProfiles("test")
 @SpringBootTest
 @AutoConfigureMockMvc
+@TestPropertySource(properties = {
+        "JWT_SECRET=test-secret-value-which-is-long-enough-1234567890"
+})
 class FraudEndToEndTest {
 
     @Autowired
@@ -51,12 +58,15 @@ class FraudEndToEndTest {
                 }
                 """;
 
-        // Step 1: Hit the real API
-        mvc.perform(
-                post("/api/v1/transactions")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json)
-        ).andExpect(status().isOk());
+        // Step 0: Login to obtain JWT
+        String bearer = loginAndGetBearerToken();
+
+        // Step 1: Hit the real API with Authorization header
+        MockHttpServletRequestBuilder request = post("/api/v1/transactions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json)
+                .header("Authorization", bearer);
+        mvc.perform(request).andExpect(status().isOk());
 
         // Step 2: Database assertions (REAL DB!)
         List<RuleResult> results = waitForRuleResults("TX-HV-E2E");
@@ -69,6 +79,31 @@ class FraudEndToEndTest {
         // Step 4: Assert final fraud decision
         assertThat(decision.isFraud()).isTrue();
         assertThat(decision.getSeverity()).isGreaterThan(0);
+    }
+
+    private String loginAndGetBearerToken() throws Exception {
+        String loginJson = """
+            { "username": "admin", "password": "password123" }
+        """;
+        MvcResult res = mvc.perform(
+                post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson)
+        ).andExpect(status().isOk()).andReturn();
+        String body = res.getResponse().getContentAsString();
+        // very simple extraction without adding a JSON parser
+        String token = extractJsonValue(body, "token");
+        return "Bearer " + token;
+    }
+
+    private String extractJsonValue(String json, String key) {
+        // naive extraction: "key":"value" or "key":"value",
+        String pattern = "\"" + key + "\"" + ":\"";
+        int i = json.indexOf(pattern);
+        if (i < 0) return "";
+        int start = i + pattern.length();
+        int end = json.indexOf('"', start);
+        return end > start ? json.substring(start, end) : "";
     }
 
     private List<RuleResult> waitForRuleResults(String txId) {

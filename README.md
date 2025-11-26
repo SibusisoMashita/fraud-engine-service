@@ -1,4 +1,3 @@
-
 # fraud-engine-service
 
 ## 🚀 Overview
@@ -48,6 +47,32 @@ mvn spring-boot:run
   ```bash
   docker-compose up --build
   ```
+
+## 🔐 Login & Authentication (Default Credentials)
+After the service starts, obtain a JWT token using the default admin credentials.
+
+- Username: `admin`
+- Password: `password123`
+
+Example:
+```bash
+curl -X POST http://localhost:8080/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"password123"}'
+```
+Successful response returns JSON with a `token` field:
+```json
+{
+  "token": "<JWT_TOKEN>",
+  "expiresIn": 3600
+}
+```
+Use the token in subsequent requests:
+```bash
+curl http://localhost:8080/api/v1/transactions \
+  -H "Authorization: Bearer <JWT_TOKEN>"
+```
+Security note: Change the default password in non-local environments.
 
 ## 🎯 Usage
 
@@ -155,6 +180,9 @@ docker compose down
 🎉 Done!
 
 You now have a complete, production-like environment running with one simple command.
+
+## 📚 Documentation
+- Confluence space: https://fraudruleengine.atlassian.net/wiki/spaces/SD/folder/98348?atlOrigin=eyJpIjoiNWE2YmVkZGRkYWFkNDkxYzk2ODUzMGQ5MzE4Mjg1MjQiLCJwIjoiYyJ9
 
 ## 🤝 Contributing
 - **How to Contribute**: Fork the repository, create a new branch, and submit a pull request.

@@ -14,6 +14,10 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.fraudengine.exception.JwtExceptions.ExpiredTokenException;
+import com.fraudengine.exception.JwtExceptions.InvalidTokenException;
+import com.fraudengine.exception.JwtExceptions.MissingSecretException;
+
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -114,6 +118,21 @@ public class GlobalExceptionHandler {
 
         return buildResponse(
                 HttpStatus.CONFLICT,
+                ex.getMessage(),
+                null
+        );
+    }
+
+    // JWT related exceptions (401)
+    @ExceptionHandler({MissingSecretException.class, InvalidTokenException.class, ExpiredTokenException.class})
+    public ResponseEntity<Object> handleJwt(RuntimeException ex) {
+        log.warn(
+                "event=jwt_error exception={} message={}",
+                ex.getClass().getSimpleName(),
+                ex.getMessage()
+        );
+        return buildResponse(
+                HttpStatus.UNAUTHORIZED,
                 ex.getMessage(),
                 null
         );

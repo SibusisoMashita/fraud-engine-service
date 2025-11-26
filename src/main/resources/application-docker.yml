@@ -14,6 +14,10 @@ spring:
 server:
   port: 8080
 
+security:
+  jwt:
+    secret: ${JWT_SECRET:docker-default-secret-please-override-32ch-123456789}
+
 fraud:
   enabled-rules:
     - HIGH_VALUE
