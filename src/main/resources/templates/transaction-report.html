@@ -1,0 +1,124 @@
+<html>
+<head>
+    <style>
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            color: #333;
+            margin: 40px;
+        }
+
+        h1 {
+            color: #1A73E8;
+            border-bottom: 2px solid #1A73E8;
+            padding-bottom: 6px;
+        }
+
+        h3 {
+            color: #444;
+            margin-top: 35px;
+            border-left: 4px solid #1A73E8;
+            padding-left: 10px;
+        }
+
+        /* Transaction Card */
+        .card {
+            background: #F7F9FC;
+            border: 1px solid #E4EAF2;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-top: 10px;
+        }
+
+        .item {
+            margin: 4px 0;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #1A73E8;
+        }
+
+        /* Rules Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        th {
+            background: #1A73E8;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+
+        td {
+            background: #F9FBFF;
+            padding: 8px;
+            border-bottom: 1px solid #D9E2F3;
+        }
+
+        tr:nth-child(even) td {
+            background: #F1F5FC;
+        }
+
+        /* Pass/Fail Coloring */
+        .pass {
+            color: #0A8A0A;
+            font-weight: bold;
+        }
+
+        .fail {
+            color: #C62828;
+            font-weight: bold;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<h1>Fraud Engine – Transaction Report</h1>
+
+<h3>Transaction Details</h3>
+<div class="card">
+    <p class="item"><span class="label">ID:</span> ${tx.transactionId}</p>
+    <p class="item"><span class="label">Customer:</span> ${customer.id}</p>
+    <p class="item"><span class="label">Amount:</span> R${tx.amount}</p>
+    <p class="item"><span class="label">Date:</span> ${tx.timestamp}</p>
+    <p class="item"><span class="label">Merchant:</span> ${tx.merchant}</p>
+    <p class="item"><span class="label">City:</span> ${tx.location}</p>
+    <p class="item"><span class="label">Channel:</span> ${tx.channel}</p>
+</div>
+
+<h3>Rule Evaluation</h3>
+
+<table>
+    <tr>
+        <th>Rule</th>
+        <th>Passed</th>
+        <th>Reason</th>
+        <th>Score</th>
+    </tr>
+
+    <#list rules as rule>
+    <tr>
+        <td>${rule.ruleName}</td>
+
+        <td>
+            <#if rule.passed == true>
+            <span class="pass">✔ Passed</span>
+            <#else>
+            <span class="fail">✖ Failed</span>
+        </#if>
+        </td>
+
+        <td>${rule.reason}</td>
+        <td>${rule.score}</td>
+    </tr>
+</#list>
+</table>
+
+</body>
+</html>
